@@ -37,6 +37,10 @@ interface File {
  */
 export interface ConcatOptions {
   /**
+   * A global title to add at the beginning of the output.
+   */
+  title?: string;
+  /**
    * Whether to add a table of contents.
    */
   toc?: boolean;
@@ -92,6 +96,7 @@ function arrify<T>(input: T | T[]): T[] {
 /**  @ignore */
 class MarkDownConcatenator {
   private dir: string;
+  private title?: string;
   private toc: boolean;
   private ignore: string[];
   private include: string[];
@@ -108,6 +113,7 @@ class MarkDownConcatenator {
   public constructor(
     dir: string,
     {
+      title,
       toc = false,
       tocLevel = 3,
       ignore = [],
@@ -121,6 +127,7 @@ class MarkDownConcatenator {
     }: ConcatOptions = {} as any
   ) {
     this.dir = dir;
+    this.title = title;
     this.toc = toc;
     this.tocLevel = tocLevel;
     this.ignore = arrify(ignore);
@@ -219,15 +226,22 @@ class MarkDownConcatenator {
     return title;
   }
 
-  private addToc(content: string): string {
+  private addGlobalTitleAndToc(content: string): string {
     if (!this.toc) {
+      if (this.title) {
+        return `# ${this.title}\n${content}`;
+      }
       return content;
     }
+
     const TOC_TAG = "<!-- START doctoc -->\n<!-- END doctoc -->";
     let result = content;
 
     if (!result.includes(TOC_TAG)) {
       result = `${TOC_TAG}\n\n${result}`;
+    }
+    if (this.title) {
+      result = `# ${this.title}\n\n${result}`;
     }
     const docTocResult = transform(result, "github.com", this.tocLevel, undefined, true);
     if (docTocResult.transformed) {
@@ -277,7 +291,7 @@ class MarkDownConcatenator {
     });
 
     const result = files.map(file => file.body).join(this.joinString);
-    return this.addToc(result);
+    return this.addGlobalTitleAndToc(result);
   }
 
   public async concat(): Promise<string> {
