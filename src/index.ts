@@ -87,7 +87,7 @@ function arrify<T>(input: T | T[]): T[] {
 
 /**  @ignore */
 class MarkDownConcatenator {
-  private dir: string;
+  private locations: string[];
   private toc: boolean;
   private ignore: string | string[];
   private decreaseTitleLevels: boolean;
@@ -102,7 +102,7 @@ class MarkDownConcatenator {
   private files: File[] = [];
 
   public constructor(
-    dir: string,
+    dir: string | string[],
     {
       toc = false,
       tocLevel = 3,
@@ -115,7 +115,7 @@ class MarkDownConcatenator {
       fileNameAsTitle = false,
     }: ConcatOptions = {} as any
   ) {
-    this.dir = dir;
+    this.locations = arrify(dir);
     this.toc = toc;
     this.tocLevel = tocLevel;
     this.ignore = ignore;
@@ -280,13 +280,14 @@ class MarkDownConcatenator {
 /**
  * Scans and concatenates all markdown files in given directory.
  *
- * @param dir is the directory to scan markdown files in.
+ * @param dir is the directory to scan markdown files in, or an array
+ *            of directories and/or files to process.
  * @param options are several parameters to modify concatenation behaviour.
  * @returns concatenated contents of markdown files.
  * @example
  * import concatMd, { concatMdSync } from "concat-md"
  */
-export function concatMdSync(dir: string, options?: ConcatOptions): string {
+export function concatMdSync(dir: string | string[], options?: ConcatOptions): string {
   const markDownConcatenator = new MarkDownConcatenator(dir, options);
   return markDownConcatenator.concatSync();
 }
@@ -294,13 +295,14 @@ export function concatMdSync(dir: string, options?: ConcatOptions): string {
 /**
  * Scans and concatenates all markdown files in given directory.
  *
- * @param dir is the directory to scan markdown files in.
+ * @param dir is the directory to scan markdown files in, or an array
+ *            of directories and/or files to process.
  * @param options are several parameters to modify concatenation behaviour.
  * @returns concatenated contents of markdown files.
  * @example
  * import concatMd, { concatMdSync } from "concat-md"
  */
-export default async function concatMd(dir: string, options?: ConcatOptions): Promise<string> {
+export default async function concatMd(dir: string | string[], options?: ConcatOptions): Promise<string> {
   const markDownConcatenator = new MarkDownConcatenator(dir, options);
   return markDownConcatenator.concat();
 }

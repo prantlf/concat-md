@@ -7,7 +7,7 @@ import fs from "fs";
 import concatMd from "../index";
 
 /** @ignore */
-const lstat = fs.promises.lstat;
+const stat = fs.promises.stat;
 
 /** @ignore */
 interface Result extends meow.Result {
@@ -43,7 +43,7 @@ const FLAGS: meowOptions["flags"] = {
 /** @ignore */
 const HELP = `
 Usage
-  $ concat-md [options] <dir>
+  $ concat-md [options] <dirs>|<files>
 
 Options
   --ignore <globs csv>              - Glob patterns to exclude in 'dir'.
@@ -66,6 +66,9 @@ Examples
 
   If files don't have titles:
     $ npx concat-md --toc --decrease-title-levels --file-name-as-title --dir-name-as-title docs > README.md
+
+  If files with titles are located in multiple directories:
+    $ npx concat-md --toc --decrease-title-levels README.md articles api > DOC.md
 `;
 
 /**
@@ -85,7 +88,7 @@ async function exec(): Promise<void> {
   const dir = cli.input[0];
 
   if (!dir || dir.length === 0) {
-    console.log(`${HELP}${EOL}Error: Dir is required`);
+    console.log(`${HELP}${EOL}Error: Directories or files are required`);
     return;
   }
 
@@ -95,17 +98,17 @@ async function exec(): Promise<void> {
   };
 
   try {
-    const path = resolve(dir);
-    const stat = await lstat(path);
-    const isDirectory = stat.isDirectory();
+    const promises = cli.input.map(async dirOrFile => {
+      const path = resolve(dirOrFile);
+      await stat(path);
+      return path;
+    });
+    const paths = await Promise.all(promises);
     const unknownOption = Object.keys(flags).find(key => FLAGS && !FLAGS[key]);
-    if (!isDirectory) {
-      throw new Error(`${path} is not a directory.`);
-    }
     if (unknownOption) {
       throw new Error(`Unknown option '${unknownOption}'`);
     }
-    const result = await concatMd(path, flags as any);
+    const result = await concatMd(paths, flags as any);
     process.stdout.write(result);
   } catch (e) {
     if (flags.debug) {
